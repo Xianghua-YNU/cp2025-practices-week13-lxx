@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-太阳黑子周期性分析 - 学生代码模板
-
-请根据项目说明实现以下函数，完成太阳黑子效率与最优温度的计算。
+太阳黑子周期性分析
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
+from urllib.request import urlopen
 
 def load_sunspot_data(url):
     """
@@ -19,9 +18,10 @@ def load_sunspot_data(url):
     返回:
         tuple: (years, sunspots) 年份和太阳黑子数
     """
-    # TODO: 使用np.loadtxt读取数据，只保留第2(年份)和3(太阳黑子数)列
-    # [STUDENT_CODE_HERE]
-    raise NotImplementedError("请在 {} 中实现此函数".format(__file__))
+    # 读取数据文件，跳过前2行表头，只读取第2和3列
+    data = np.loadtxt(url, skiprows=2, usecols=(1, 2))
+    years = data[:, 0]
+    sunspots = data[:, 1]
     return years, sunspots
 
 def plot_sunspot_data(years, sunspots):
@@ -32,9 +32,15 @@ def plot_sunspot_data(years, sunspots):
         years (numpy.ndarray): 年份数组
         sunspots (numpy.ndarray): 太阳黑子数数组
     """
-    # TODO: 实现数据可视化
-    # [STUDENT_CODE_HERE]
-    raise NotImplementedError("请在 {} 中实现此函数".format(__file__))
+    plt.figure(figsize=(12, 6))
+    plt.plot(years, sunspots, linewidth=1)
+    plt.title('Sunspot Number Variation (1749-Present)', fontsize=14)
+    plt.xlabel('Year', fontsize=12)
+    plt.ylabel('Monthly Sunspot Number', fontsize=12)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.savefig('sunspot_time_series.png', dpi=300)
+    plt.show()
 
 def compute_power_spectrum(sunspots):
     """
@@ -46,9 +52,20 @@ def compute_power_spectrum(sunspots):
     返回:
         tuple: (frequencies, power) 频率数组和功率谱
     """
-    # TODO: 实现傅里叶变换和功率谱计算
-    # [STUDENT_CODE_HERE]
-    raise NotImplementedError("请在 {} 中实现此函数".format(__file__))
+    # 去除均值
+    sunspots = sunspots - np.mean(sunspots)
+    
+    # 傅里叶变换
+    n = len(sunspots)
+    fft_result = np.fft.fft(sunspots)
+    
+    # 计算功率谱 (取绝对值平方)
+    power = np.abs(fft_result)​**2
+    
+    # 计算频率 (只取正频率部分)
+    frequencies = np.fft.fftfreq(n, d=1)[:n//2]
+    power = power[:n//2]
+    
     return frequencies, power
 
 def plot_power_spectrum(frequencies, power):
@@ -59,9 +76,15 @@ def plot_power_spectrum(frequencies, power):
         frequencies (numpy.ndarray): 频率数组
         power (numpy.ndarray): 功率谱数组
     """
-    # TODO: 实现功率谱可视化
-    # [STUDENT_CODE_HERE]
-    raise NotImplementedError("请在 {} 中实现此函数".format(__file__))
+    plt.figure(figsize=(12, 6))
+    plt.semilogy(1/frequencies[1:], power[1:], linewidth=1)
+    plt.title('Power Spectrum of Sunspot Numbers', fontsize=14)
+    plt.xlabel('Period (months)', fontsize=12)
+    plt.ylabel('Power (log scale)', fontsize=12)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.savefig('sunspot_power_spectrum.png', dpi=300)
+    plt.show()
 
 def find_main_period(frequencies, power):
     """
@@ -74,9 +97,12 @@ def find_main_period(frequencies, power):
     返回:
         float: 主周期（月）
     """
-    # TODO: 实现主周期检测
-    # [STUDENT_CODE_HERE]
-    raise NotImplementedError("请在 {} 中实现此函数".format(__file__))
+    # 找到最大功率对应的索引（跳过0频率）
+    max_idx = np.argmax(power[1:]) + 1
+    
+    # 计算对应的周期
+    main_period = 1 / frequencies[max_idx]
+    
     return main_period
 
 def main():
@@ -84,10 +110,12 @@ def main():
     data = "sunspot_data.txt"
     
     # 1. 加载并可视化数据
+    print("Loading and plotting sunspot data...")
     years, sunspots = load_sunspot_data(data)
     plot_sunspot_data(years, sunspots)
     
     # 2. 傅里叶变换分析
+    print("Computing power spectrum...")
     frequencies, power = compute_power_spectrum(sunspots)
     plot_power_spectrum(frequencies, power)
     
