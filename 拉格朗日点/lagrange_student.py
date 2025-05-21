@@ -106,4 +106,127 @@ def secant_method(f, a, b, tol=1e-8, max_iter=100):
     参数:
         f (callable): 目标方程，形式为f(x)=0
         a (float): 区间左端点
-       
+        b (float): 区间右端点
+        tol (float): 收敛容差
+        max_iter (int): 最大迭代次数
+    
+    返回:
+        tuple: (近似解, 迭代次数, 收敛标志)
+    """
+    fa = f(a)
+    fb = f(b)
+    iterations = 0
+    converged = False
+    
+    for i in range(max_iter):
+        if abs(fa) < abs(fb):
+            a, b = b, a
+            fa, fb = fb, fa
+            
+        if abs(fb) < tol:
+            converged = True
+            break
+            
+        # 计算新的近似值
+        dx = (b - a) * fb / (fb - fa)
+        b = b - dx
+        fb = f(b)
+        
+        iterations = i + 1
+        
+        # 检查收敛
+        if abs(dx) < tol * abs(b):
+            converged = True
+            break
+    
+    return b, iterations, converged
+
+
+def plot_lagrange_equation(r_min, r_max, num_points=1000):
+    """
+    绘制L1拉格朗日点位置方程的函数图像
+    
+    参数:
+        r_min (float): 绘图范围最小值 (m)
+        r_max (float): 绘图范围最大值 (m)
+        num_points (int): 采样点数
+    
+    返回:
+        matplotlib.figure.Figure: 绘制的图形对象
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # 生成r值数组
+    r_values = np.linspace(r_min, r_max, num_points)
+    # 计算方程值
+    f_values = [lagrange_equation(r) for r in r_values]
+    
+    # 绘制函数曲线
+    ax.plot(r_values, f_values, label='Lagrange Equation')
+    # 绘制y=0参考线
+    ax.axhline(0, color='gray', linestyle='--')
+    
+    # 标记L1点的大致位置
+    approx_l1 = 3.263e8  # 近似L1点位置
+    ax.axvline(approx_l1, color='red', linestyle=':', label='Approximate L1 position')
+    
+    # 设置图形属性
+    ax.set_xlabel('Distance from Earth (m)')
+    ax.set_ylabel('Equation value')
+    ax.set_title('L1 Lagrange Point Equation')
+    ax.legend()
+    ax.grid(True)
+    
+    return fig
+
+
+def main():
+    """
+    主函数，执行L1拉格朗日点位置的计算和可视化
+    """
+    # 1. 绘制方程图像，帮助选择初值
+    r_min = 3.0e8  # 搜索范围下限 (m)，约为地月距离的80%
+    r_max = 3.8e8  # 搜索范围上限 (m)，接近地月距离
+    fig = plot_lagrange_equation(r_min, r_max)
+    plt.savefig('lagrange_equation.png', dpi=300)
+    plt.show()
+    
+    # 2. 使用牛顿法求解
+    print("\n使用牛顿法求解L1点位置:")
+    r0_newton = 3.5e8  # 初始猜测值 (m)，大约在地月距离的90%处
+    r_newton, iter_newton, conv_newton = newton_method(lagrange_equation, lagrange_equation_derivative, r0_newton)
+    if conv_newton:
+        print(f"  收敛解: {r_newton:.8e} m")
+        print(f"  迭代次数: {iter_newton}")
+        print(f"  相对于地月距离的比例: {r_newton/R:.6f}")
+    else:
+        print("  牛顿法未收敛!")
+    
+    # 3. 使用弦截法求解
+    print("\n使用弦截法求解L1点位置:")
+    a, b = 3.2e8, 3.7e8  # 初始区间 (m)
+    r_secant, iter_secant, conv_secant = secant_method(lagrange_equation, a, b)
+    if conv_secant:
+        print(f"  收敛解: {r_secant:.8e} m")
+        print(f"  迭代次数: {iter_secant}")
+        print(f"  相对于地月距离的比例: {r_secant/R:.6f}")
+    else:
+        print("  弦截法未收敛!")
+    
+    # 4. 使用SciPy的fsolve求解
+    print("\n使用SciPy的fsolve求解L1点位置:")
+    r0_fsolve = 3.5e8  # 初始猜测值 (m)
+    r_fsolve = optimize.fsolve(lagrange_equation, r0_fsolve)[0]
+    print(f"  收敛解: {r_fsolve:.8e} m")
+    print(f"  相对于地月距离的比例: {r_fsolve/R:.6f}")
+    
+    # 5. 比较不同方法的结果
+    if conv_newton and conv_secant:
+        print("\n不同方法结果比较:")
+        print(f"  牛顿法与弦截法的差异: {abs(r_newton-r_secant):.8e} m ({abs(r_newton-r_secant)/r_newton*100:.8f}%)")
+        print(f"  牛顿法与fsolve的差异: {abs(r_newton-r_fsolve):.8e} m ({abs(r_newton-r_fsolve)/r_newton*100:.8f}%)")
+        print(f"  弦截法与fsolve的差异: {abs(r_secant-r_fsolve):.8e} m ({abs(r_secant-r_fsolve)/r_secant*100:.8f}%)")
+
+
+if __name__ == "__main__":
+    main()
