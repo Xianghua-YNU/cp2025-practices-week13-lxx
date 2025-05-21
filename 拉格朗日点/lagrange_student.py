@@ -30,9 +30,9 @@ def lagrange_equation(r):
     """
     # 地球引力 - 月球引力 - 离心力 = 0
     # 方程形式: GM/r^2 - Gm/(R-r)^2 - ω²r = 0
-    earth_gravity = G * M / (r ​**​ 2)
-    moon_gravity = G * m / ((R - r) ​**​ 2)
-    centrifugal = omega ​**​ 2 * r
+    earth_gravity = G * M / (r ** 2)
+    moon_gravity = G * m / ((R - r) ** 2)
+    centrifugal = omega **2 * r
     equation_value = earth_gravity - moon_gravity - centrifugal
     
     return equation_value
@@ -50,7 +50,7 @@ def lagrange_equation_derivative(r):
     """
     # 对lagrange_equation函数求导
     # d/dr[GM/r^2 - Gm/(R-r)^2 - ω²r] = -2GM/r^3 + 2Gm/(R-r)^3 - ω²
-    derivative = -2 * G * M / (r ​**​ 3) + 2 * G * m / ((R - r) ​**​ 3) - omega ​**​ 2
+    derivative = -2 * G * M / (r ** 3) + 2 * G * m / ((R - r) ** 3) - omega ** 2
     
     return derivative
 
