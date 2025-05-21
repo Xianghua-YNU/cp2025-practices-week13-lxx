@@ -60,7 +60,7 @@ def compute_power_spectrum(sunspots):
     fft_result = np.fft.fft(sunspots)
     
     # 计算功率谱 (取绝对值平方)
-    power = np.abs(fft_result)​**2
+    power = np.abs(fft_result)**2
     
     # 计算频率 (只取正频率部分)
     frequencies = np.fft.fftfreq(n, d=1)[:n//2]
