@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-拉格朗日点 - 地球-月球系统L1点位置计算
+拉格朗日点 - 地球-月球系统L1点位置计算（参考答案）
 
 本模块实现了求解地球-月球系统L1拉格朗日点位置的数值方法。
 """
@@ -22,20 +22,26 @@ def lagrange_equation(r):
     """
     L1拉格朗日点位置方程
     
+    在L1点，卫星受到的地球引力、月球引力和离心力平衡。
+    方程形式为：G*M/r^2 - G*m/(R-r)^2 - omega^2*r = 0
+    
     参数:
         r (float): 从地心到L1点的距离 (m)
     
     返回:
         float: 方程左右两边的差值，当r是L1点位置时返回0
     """
-    # 地球引力 - 月球引力 - 离心力 = 0
-    # 方程形式: GM/r^2 - Gm/(R-r)^2 - ω²r = 0
-    earth_gravity = G * M / (r ** 2)
-    moon_gravity = G * m / ((R - r) ** 2)
-    centrifugal = omega **2 * r
-    equation_value = earth_gravity - moon_gravity - centrifugal
+    # 地球引力
+    earth_gravity = G * M / (r**2)
     
-    return equation_value
+    # 月球引力 (注意方向与地球引力相反)
+    moon_gravity = G * m / ((R - r)**2)
+    
+    # 离心力
+    centrifugal_force = omega**2 * r
+    
+    # 力平衡方程
+    return earth_gravity - moon_gravity - centrifugal_force
 
 
 def lagrange_equation_derivative(r):
@@ -48,11 +54,17 @@ def lagrange_equation_derivative(r):
     返回:
         float: 方程对r的导数值
     """
-    # 对lagrange_equation函数求导
-    # d/dr[GM/r^2 - Gm/(R-r)^2 - ω²r] = -2GM/r^3 + 2Gm/(R-r)^3 - ω²
-    derivative = -2 * G * M / (r ** 3) + 2 * G * m / ((R - r) ** 3) - omega ** 2
+    # 地球引力项的导数
+    earth_gravity_derivative = -2 * G * M / (r**3)
     
-    return derivative
+    # 月球引力项的导数
+    moon_gravity_derivative = -2 * G * m / ((R - r)**3)
+    
+    # 离心力项的导数
+    centrifugal_force_derivative = omega**2
+    
+    # 导数方程
+    return earth_gravity_derivative + moon_gravity_derivative - centrifugal_force_derivative
 
 
 def newton_method(f, df, x0, tol=1e-8, max_iter=100):
@@ -75,24 +87,25 @@ def newton_method(f, df, x0, tol=1e-8, max_iter=100):
     
     for i in range(max_iter):
         fx = f(x)
-        dfx = df(x)
-        
         if abs(fx) < tol:
             converged = True
-            break
-            
-        if dfx == 0:
-            break
-            
-        x_new = x - fx / dfx
-        
-        # 检查相对变化是否小于容差
-        if abs(x_new - x) < tol * abs(x_new):
-            converged = True
-            x = x_new
             iterations = i + 1
             break
-            
+        
+        dfx = df(x)
+        if abs(dfx) < 1e-14:  # 避免除以接近零的数
+            break
+        
+        delta = fx / dfx
+        x_new = x - delta
+        
+        # 检查相对变化是否小于容差
+        if abs(delta / x) < tol:
+            converged = True
+            iterations = i + 1
+            x = x_new
+            break
+        
         x = x_new
         iterations = i + 1
     
@@ -115,31 +128,49 @@ def secant_method(f, a, b, tol=1e-8, max_iter=100):
     """
     fa = f(a)
     fb = f(b)
+    
+    if abs(fa) < tol:
+        return a, 0, True
+    if abs(fb) < tol:
+        return b, 0, True
+    
+    if fa * fb > 0:  # 确保区间端点函数值异号
+        print("警告: 区间端点函数值同号，弦截法可能不收敛")
+    
     iterations = 0
     converged = False
     
-    for i in range(max_iter):
-        if abs(fa) < abs(fb):
-            a, b = b, a
-            fa, fb = fb, fa
-            
-        if abs(fb) < tol:
-            converged = True
-            break
-            
-        # 计算新的近似值
-        dx = (b - a) * fb / (fb - fa)
-        b = b - dx
-        fb = f(b)
-        
-        iterations = i + 1
-        
-        # 检查收敛
-        if abs(dx) < tol * abs(b):
-            converged = True
-            break
+    x0, x1 = a, b
+    f0, f1 = fa, fb
     
-    return b, iterations, converged
+    for i in range(max_iter):
+        # 避免除以接近零的数
+        if abs(f1 - f0) < 1e-14:
+            break
+        
+        # 弦截法迭代公式
+        x2 = x1 - f1 * (x1 - x0) / (f1 - f0)
+        f2 = f(x2)
+        
+        if abs(f2) < tol:  # 函数值接近零
+            converged = True
+            iterations = i + 1
+            x1 = x2
+            break
+        
+        # 检查相对变化是否小于容差
+        if abs((x2 - x1) / x1) < tol:
+            converged = True
+            iterations = i + 1
+            x1 = x2
+            break
+        
+        # 更新迭代值
+        x0, f0 = x1, f1
+        x1, f1 = x2, f2
+        iterations = i + 1
+    
+    return x1, iterations, converged
 
 
 def plot_lagrange_equation(r_min, r_max, num_points=1000):
@@ -154,28 +185,44 @@ def plot_lagrange_equation(r_min, r_max, num_points=1000):
     返回:
         matplotlib.figure.Figure: 绘制的图形对象
     """
+    r_values = np.linspace(r_min, r_max, num_points)
+    f_values = np.array([lagrange_equation(r) for r in r_values])
+    
+    # 寻找零点附近的位置
+    zero_crossings = np.where(np.diff(np.signbit(f_values)))[0]
+    r_zeros = []
+    for idx in zero_crossings:
+        r1, r2 = r_values[idx], r_values[idx + 1]
+        f1, f2 = f_values[idx], f_values[idx + 1]
+        # 线性插值找到更精确的零点
+        r_zero = r1 - f1 * (r2 - r1) / (f2 - f1)
+        r_zeros.append(r_zero)
+    
+    # 创建图形
     fig, ax = plt.subplots(figsize=(10, 6))
     
-    # 生成r值数组
-    r_values = np.linspace(r_min, r_max, num_points)
-    # 计算方程值
-    f_values = [lagrange_equation(r) for r in r_values]
-    
     # 绘制函数曲线
-    ax.plot(r_values, f_values, label='Lagrange Equation')
-    # 绘制y=0参考线
-    ax.axhline(0, color='gray', linestyle='--')
+    ax.plot(r_values / 1e8, f_values, 'b-', label='L1 point equation')
     
-    # 标记L1点的大致位置
-    approx_l1 = 3.263e8  # 近似L1点位置
-    ax.axvline(approx_l1, color='red', linestyle=':', label='Approximate L1 position')
+    # 标记零点
+    for r_zero in r_zeros:
+        ax.plot(r_zero / 1e8, 0, 'ro', label=f'Zero point: {r_zero:.4e} m')
     
-    # 设置图形属性
-    ax.set_xlabel('Distance from Earth (m)')
+    # 添加水平和垂直参考线
+    ax.axhline(y=0, color='k', linestyle='--', alpha=0.3)
+    
+    # 设置坐标轴标签和标题
+    ax.set_xlabel('Distance from Earth center (10^8 m)')
     ax.set_ylabel('Equation value')
     ax.set_title('L1 Lagrange Point Equation')
-    ax.legend()
-    ax.grid(True)
+    
+    # 添加图例，只显示一次
+    handles, labels = ax.get_legend_handles_labels()
+    unique_labels = dict(zip(labels, handles))
+    ax.legend(unique_labels.values(), unique_labels.keys())
+    
+    # 添加网格
+    ax.grid(True, alpha=0.3)
     
     return fig
 
